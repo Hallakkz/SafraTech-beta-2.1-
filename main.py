@@ -588,7 +588,7 @@ elif menu == t["menu"][3]:
             with st.spinner("Pensando..." if lang == "Português" else "Thinking..."):
                 try:
                     api_key = st.secrets["gemini"]["api_key"]
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
 
                     system_prompt = (
                         "Você é o Assistente SafraTech, um especialista em agricultura de precisão e pecuária. "
@@ -604,17 +604,17 @@ elif menu == t["menu"][3]:
                         "If the question is not about agriculture or livestock, gently redirect to these topics."
                     )
 
-                    contents = []
-                    for msg in st.session_state.chat_history[:-1]:
-                        contents.append({
-                            "role": "user" if msg["role"] == "user" else "model",
-                            "parts": [{"text": msg["content"]}]
-                        })
-                    contents.append({"role": "user", "parts": [{"text": system_prompt + "\n\n" + pergunta}]})
+                    contents = [{"role": "user", "parts": [{"text": system_prompt + "\n\nPergunta: " + pergunta}]}]
 
-                    resp = requests.post(url, json={"contents": contents})
+                    resp = requests.post(url, json={"contents": contents}, timeout=15)
                     data = resp.json()
-                    resposta = data["candidates"][0]["content"]["parts"][0]["text"]
+
+                    if "candidates" in data:
+                        resposta = data["candidates"][0]["content"]["parts"][0]["text"]
+                    elif "error" in data:
+                        resposta = f"Erro da API: {data['error'].get('message', 'Desconhecido')}"
+                    else:
+                        resposta = f"Resposta inesperada: {str(data)[:200]}"
 
                 except Exception as e:
                     resposta = f"Erro ao conectar com o assistente: {e}"
